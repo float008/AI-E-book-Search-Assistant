@@ -1,0 +1,34 @@
+{
+  "name": "ai-e-book-search-assistant",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/float008/AI-E-book-Search-Assistant.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/float008/AI-E-book-Search-Assistant/issues"
+  },
+  "homepage": "https://github.com/float008/AI-E-book-Search-Assistant#readme",
+  "dependencies": {
+    "@langchain/classic": "^1.0.7",
+    "@langchain/community": "^1.1.1",
+    "@langchain/core": "^1.1.8",
+    "@langchain/openai": "^1.2.0",
+    "@langchain/textsplitters": "^1.0.1",
+    "@zilliz/milvus2-sdk-node": "^3.0.0",
+    "cheerio": "^1.1.2",
+    "dotenv": "^16.6.1",
+    "epub2": "^3.0.2",
+    "html-to-text": "^9.0.5",
+    "js-tiktoken": "^1.0.21"
+  }
+}
