@@ -2,8 +2,12 @@
   "name": "ai-e-book-search-assistant",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/insert.js",
   "scripts": {
+    "build": "tsc",
+    "insert": "tsx src/insert.ts",
+    "query": "tsx src/query.ts",
+    "rag": "tsx src/rag.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "type": "module",
@@ -30,5 +34,10 @@
     "epub2": "^3.0.2",
     "html-to-text": "^9.0.5",
     "js-tiktoken": "^1.0.21"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }

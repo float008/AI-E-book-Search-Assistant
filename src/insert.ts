@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { parse } from "path";
+import { parse } from "node:path";
 import {
   MilvusClient,
   DataType,
@@ -12,16 +12,14 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 
 const COLLECTION_NAME = "ebook_collection";
 const VECTOR_DIM = 1024;
-const CHUNK_SIZE = 500; // 拆分到 500 个字符
+const CHUNK_SIZE = 500;
 const EPUB_FILE = "./天龙八部.epub";
 const BOOK_NAME = parse(EPUB_FILE).name;
 
-// 初始化 Milvus 客户端
 const client = new MilvusClient({
   address: "localhost:19530",
 });
 
-//初始化向量模型
 const embeddings = new OpenAIEmbeddings({
   apiKey: process.env.OPENAI_API_KEY,
   model: process.env.OPENAI_EMBEDDINGS_MODEL,
@@ -31,13 +29,13 @@ const embeddings = new OpenAIEmbeddings({
   dimensions: VECTOR_DIM,
 });
 
-async function getEmbedding(text) {
-  const embedding = await embeddings.embedQuery(text);
-  return embedding;
+async function getEmbedding(text: string): Promise<number[]> {
+  return embeddings.embedQuery(text);
 }
 
-/** 同一本书重复导入前，按 book_id 删除旧分片，避免主键与数据重复 */
-async function removeExistingChunksForBook(bookId) {
+async function removeExistingChunksForBook(
+  bookId: number | string,
+): Promise<void> {
   const has = await client.hasCollection({
     collection_name: COLLECTION_NAME,
   });
@@ -61,8 +59,7 @@ async function removeExistingChunksForBook(bookId) {
   console.log("✓ 旧数据已清除（或本来无数据）\n");
 }
 
-// 确保集合存在
-async function ensureCollection() {
+async function ensureCollection(): Promise<void> {
   try {
     const hasCollection = await client.hasCollection({
       collection_name: COLLECTION_NAME,
@@ -97,7 +94,6 @@ async function ensureCollection() {
 
       console.log("✓ 集合创建成功");
 
-      // 创建索引
       console.log("创建索引...");
       await client.createIndex({
         collection_name: COLLECTION_NAME,
@@ -109,31 +105,30 @@ async function ensureCollection() {
       console.log("✓ 索引创建成功");
     }
 
-    // 确保集合已加载
     try {
       await client.loadCollection({ collection_name: COLLECTION_NAME });
       console.log("✓ 集合已加载");
-    } catch (error) {
+    } catch {
       console.log("✓ 集合已处于加载状态");
     }
-  } catch (error) {
-    console.error("创建集合时出错:", error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("创建集合时出错:", message);
     console.error(error);
   }
 }
 
-/**
- * 将文档块批量插入到 Milvus
- */
-async function insertChunksBatch(chunks, bookId, chapterNum) {
+async function insertChunksBatch(
+  chunks: string[],
+  bookId: number | string,
+  chapterNum: number,
+): Promise<number> {
   try {
     if (chunks.length === 0) {
       return 0;
     }
 
     const bookIdStr = String(bookId);
-
-    // 为每个文档生成向量并构建插入数据
 
     const insertData = await Promise.all(
       chunks.map(async (chunk, chunkIndex) => {
@@ -146,7 +141,7 @@ async function insertChunksBatch(chunks, bookId, chapterNum) {
           chapter_num: chapterNum,
           index: chunkIndex,
           content: chunk,
-          vector: vector,
+          vector,
         };
       }),
     );
@@ -158,96 +153,94 @@ async function insertChunksBatch(chunks, bookId, chapterNum) {
 
     console.log("insertResult", insertResult);
 
-    return Number(insertResult.insert_cnt) || 0;
-  } catch (error) {
-    console.error(`插入章节 ${chapterNum} 的数据时出错:`, error.message);
+    const cnt = insertResult.insert_cnt;
+    return typeof cnt === "number" ? cnt : Number(cnt) || 0;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`插入章节 ${chapterNum} 的数据时出错:`, message);
     console.error("错误详情:", error);
-    console.error(error);
     return 0;
   }
 }
 
-async function loadAndProcessEPubStreaming(bookId) {
-  try {
-    await removeExistingChunksForBook(bookId);
+async function loadAndProcessEPubStreaming(
+  bookId: number | string,
+): Promise<void> {
+  await removeExistingChunksForBook(bookId);
 
-    console.log(`\n开始加载 EPUB 文件: ${EPUB_FILE}`);
+  console.log(`\n开始加载 EPUB 文件: ${EPUB_FILE}`);
 
-    const loader = new EPubLoader(EPUB_FILE, {
-      splitChapters: true,
-    });
+  const loader = new EPubLoader(EPUB_FILE, {
+    splitChapters: true,
+  });
 
-    const document = await loader.load();
-    console.log(`✓ 加载完成，共 ${document.length} 个章节\n`);
+  const document = await loader.load();
+  console.log(`✓ 加载完成，共 ${document.length} 个章节\n`);
 
-    const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: CHUNK_SIZE,
-      chunkOverlap: 50,
-    });
+  const textSplitter = new RecursiveCharacterTextSplitter({
+    chunkSize: CHUNK_SIZE,
+    chunkOverlap: 50,
+  });
 
-    let totalInserted = 0;
+  let totalInserted = 0;
 
-    for (let chapterIndex = 0; chapterIndex < document.length; chapterIndex++) {
-      const chapter = document[chapterIndex];
-      const chapterContent = chapter.pageContent;
+  for (let chapterIndex = 0; chapterIndex < document.length; chapterIndex++) {
+    const chapter = document[chapterIndex];
+    const chapterContent = chapter.pageContent;
 
-      console.log(`\n开始处理第 ${chapterIndex + 1} 章`);
+    console.log(`\n开始处理第 ${chapterIndex + 1} 章`);
 
-      const chunks = await textSplitter.splitText(chapterContent);
+    const chunks = await textSplitter.splitText(chapterContent);
 
-      console.log(
-        `✓ 第 ${chapterIndex + 1} 章拆分完成，共 ${chunks.length} 个分块`,
-      );
+    console.log(
+      `✓ 第 ${chapterIndex + 1} 章拆分完成，共 ${chunks.length} 个分块`,
+    );
 
-      if (chunks.length === 0) {
-        console.log("跳过空章节 \n");
-        continue;
-      }
-
-      console.log("生成向量并插入中...");
-
-      const insertedCount = await insertChunksBatch(
-        chunks,
-        bookId,
-        chapterIndex + 1,
-      );
-
-      totalInserted += insertedCount;
-
-      console.log(`已插入${insertedCount}条记录（累计：${totalInserted}） \n`);
+    if (chunks.length === 0) {
+      console.log("跳过空章节 \n");
+      continue;
     }
 
-    console.log(`\n 总共插入${totalInserted}条记录\n`);
-  } catch (error) {
-    console.error(`加载 EPUB 文件时出错:`, error.message);
-    throw error;
+    console.log("生成向量并插入中...");
+
+    const insertedCount = await insertChunksBatch(
+      chunks,
+      bookId,
+      chapterIndex + 1,
+    );
+
+    totalInserted += insertedCount;
+
+    console.log(`已插入${insertedCount}条记录（累计：${totalInserted}） \n`);
   }
+
+  console.log(`\n 总共插入${totalInserted}条记录\n`);
 }
 
-async function main() {
-  try {
-    console.log("=".repeat(80));
-    console.log("电子书处理程序");
-    console.log("=".repeat(80));
+async function main(): Promise<void> {
+  console.log("=".repeat(80));
+  console.log("电子书处理程序");
+  console.log("=".repeat(80));
 
-    console.log("\n连接 Milvus 数据库...");
-    await client.connectPromise;
-    console.log("✓ 连接成功");
+  console.log("\n连接 Milvus 数据库...");
+  await client.connectPromise;
+  console.log("✓ 连接成功");
 
-    const bookId = 1;
+  const bookId = 1;
 
-    await ensureCollection();
+  await ensureCollection();
 
-    await loadAndProcessEPubStreaming(bookId);
+  await loadAndProcessEPubStreaming(bookId);
 
-    console.log("=".repeat(80));
-    console.log("处理完成！");
-    console.log("=".repeat(80));
-  } catch (error) {
-    console.error("\n错误：", error.message);
-    console.error(error.stack);
-    process.exit(1);
-  }
+  console.log("=".repeat(80));
+  console.log("处理完成！");
+  console.log("=".repeat(80));
 }
 
-main();
+main().catch((error) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : undefined;
+  console.error("\n错误：", message);
+  if (stack) console.error(stack);
+  process.exit(1);
+});
