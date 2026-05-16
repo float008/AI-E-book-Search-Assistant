@@ -23,17 +23,13 @@
   },
   "homepage": "https://github.com/float008/AI-E-book-Search-Assistant#readme",
   "dependencies": {
-    "@langchain/classic": "^1.0.7",
-    "@langchain/community": "^1.1.1",
-    "@langchain/core": "^1.1.8",
-    "@langchain/openai": "^1.2.0",
-    "@langchain/textsplitters": "^1.0.1",
-    "@zilliz/milvus2-sdk-node": "^3.0.0",
-    "cheerio": "^1.1.2",
-    "dotenv": "^16.6.1",
-    "epub2": "^3.0.2",
-    "html-to-text": "^9.0.5",
-    "js-tiktoken": "^1.0.21"
+    "@langchain/community": "^1.1.27",
+    "@langchain/core": "^1.1.40",
+    "@langchain/langgraph": "^1.2.9",
+    "@langchain/openai": "^1.4.4",
+    "@zilliz/milvus2-sdk-node": "^2.6.13",
+    "dotenv": "^17.4.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
