@@ -180,9 +180,6 @@ const seedElasticsearch = async (indexName: string, rows: any[]) => {
     console.error("Elasticsearch 出错:", error.message);
     throw error;
   }
-  const client = new Client({ node: ES_NODE });
-  await client.indices.create({ index: indexName });
-  await client.index({ index: indexName, body: rows });
 };
 
 /**
@@ -276,7 +273,7 @@ const seedMilvus = async (collectionName: string, rows: any[], emb: any) => {
       priority: String(row.priority),
       tags: row.tags.join(","),
       [DOC_TEXT]: texts[i],
-      [EMBEDDING]: embeddings.embedQuery(texts[i]),
+      [EMBEDDING]: vectors[i],
     }));
 
     const insertResult = await milvusClient.insert({
