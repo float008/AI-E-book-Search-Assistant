@@ -1,130 +1,149 @@
 # AI-E-book-Search-Assistant
 
-基于大模型与向量数据库的 **EPUB 电子书检索问答** 项目。支持将小说切块入库，并通过 RAG、多跳检索与 LangGraph 工作流进行智能问答。
+基于大模型与多存储的 **RAG / Agent / 图谱 / 评测** 实验项目。涵盖 EPUB 电子书问答、Elasticsearch + Milvus 混合检索、Neo4j 图谱问答、LangSmith 自动化评测等。
 
 ## 技术栈
 
 | 类别 | 技术 |
 |------|------|
-| 语言 | TypeScript、Node.js (ES Module) |
-| 编排 | [LangGraph](https://langchain-ai.github.io/langgraph/)、[LangChain](https://js.langchain.com/) |
-| 大模型 | OpenAI 兼容 API（如通义千问 `qwen-plus` / `qwen3.5-plus`） |
-| Embedding | `text-embedding-v3`（1024 维） |
-| 向量库 | [Milvus](https://milvus.io/)（`IVF_FLAT` + `COSINE`） |
-| 向量接入 | `@langchain/community` Milvus VectorStore、`@zilliz/milvus2-sdk-node` |
-| 文档处理 | EPUB 加载（`EPubLoader`）、`RecursiveCharacterTextSplitter` 文本分块 |
-| 校验 / 结构化输出 | Zod、`withStructuredOutput` |
+| 语言 | TypeScript、Node.js |
+| 编排 | LangGraph、LangChain |
+| 大模型 | OpenAI 兼容 API（如通义千问） |
+| Embedding | text-embedding-v3（1024 维） |
+| 向量库 | Milvus |
+| 全文检索 | Elasticsearch 8 + IK 中文分词 |
+| 图数据库 | Neo4j |
+| 评测 | LangSmith、OpenEvals |
+| 重排 | 通义 DashScope Rerank |
 | 配置 | dotenv |
 
-## 功能特性
+## 能力模块
 
-### 1. 自主决策
+| 模块 | 说明 |
+|------|------|
+| 电子书 RAG | EPUB 分块入库，向量检索与基础问答 |
+| 多跳 Agent | 路由、子问题拆解、多轮检索与规划生成 |
+| 混合检索 | 查询改写，全文 + 向量并行召回，重排后作答 |
+| 客服知识库 | Markdown/TXT 入库 Milvus，检索增强问答 |
+| 图谱 RAG | 自然语言转 Cypher，查图后生成答案 |
+| RAG 评测 | 数据集回归 + 忠实度 / 有用性 / 检索相关性等指标 |
 
-使用 **LangGraph** 构建多节点工作流，由模型与规则共同决定执行路径，而非固定「检索 → 生成」流水线。
-
-- **问答路由**：判断 `simple`（直接回答）或 `complex`（进入多跳 RAG）
-- **子问题拆解**：将复合问题拆成有序、可独立检索的子问题链
-- **检索规划**：根据已检索轮数、剩余子问题、上一轮命中摘要，决定继续 `retrieve` 或进入 `rag_generate`
-- **流式生成**：基于累积证据回答用户原始问题
-
-入口：[`src/naive.ts`](src/naive.ts)
-
-### 2. 网络搜索
-
-在电子书向量库之外，可对接 **Web 检索** 补充实时或库外信息（如百科、新闻、补充设定）。适用于向量库未覆盖或需要时效性内容的场景。
-
-> 扩展方向：接入 Tavily / SerpAPI / 自建搜索 API，作为 LangGraph 独立节点，与 Milvus 检索结果合并后生成。
-
-### 3. 关键词搜索
-
-除 **语义向量检索** 外，支持基于 **关键词 / 全文** 的检索方式，提升对人名、地名、专有名词等精确匹配的召回。
-
-- 当前已实现：**向量相似度检索**（`similaritySearchWithScore` / `MilvusClient.search`）
-- 扩展方向：Milvus 标量过滤、`book_id` / `chapter_num` 条件查询，或 BM25 + 向量混合检索（Hybrid Search）
-
-### 4. 知识图谱
-
-将书中 **人物、门派、事件、章节** 等抽象为实体与关系，构建知识图谱，用于多跳推理、关系补全与可解释检索。
-
-> 扩展方向：从 EPUB 分块中抽取三元组，写入图数据库（如 Neo4j），与向量检索联动（GraphRAG）。
-
-### 5. RAG 评估
-
-对检索与生成质量进行 **可量化评估**，便于调参（`top-k`、`nprobe`、分块大小）与对比不同策略。
-
-> 扩展方向：召回率 / 命中率、答案忠实度、与子问题覆盖度；可使用 Ragas、自建 LLM-as-judge 或人工标注集。
-
-## 项目结构
-
-```
-src/
-  insert.ts   # EPUB 解析、分块、向量化写入 Milvus
-  query.ts    # 向量检索（Milvus SDK）
-  rag.ts      # 检索 + 大模型问答
-  naive.ts    # LangGraph：路由、拆解、多跳检索、规划、生成
-```
-
-## 快速开始
-
-### 环境要求
-
-- Node.js 18+
-- 本地 Milvus（默认 `localhost:19530`）
-- OpenAI 兼容 API Key
-
-### 安装
+## 基础设施
 
 ```bash
-npm install
+docker compose up -d
 ```
 
-### 环境变量
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| Elasticsearch | 9200 | 全文检索（内置 IK 分词） |
+| Kibana | 5601 | ES 控制台 |
+| Milvus | 19530 | 向量检索 |
+| MinIO | 9000 / 9001 | 对象存储 |
+| Neo4j | 7474 / 7687 | 图库 Browser / Bolt |
 
-在项目根目录创建 `.env`：
+Neo4j 默认账号：`neo4j` / `12345678`。数据持久化在项目 `volumes` 目录。
+
+首次构建 ES 镜像若失败，可执行 `docker compose build --no-cache es` 后重试。
+
+## 环境变量
+
+在项目根目录创建 `.env`（勿提交密钥）：
 
 ```env
-OPENAI_BASE_URL=https://your-compatible-endpoint/v1
+OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
 OPENAI_API_KEY=your-api-key
 OPENAI_BASE_MODEL=qwen-plus
 OPENAI_STRUCTURED_MODEL=qwen-plus
 OPENAI_EMBEDDINGS_MODEL=text-embedding-v3
+
+OPENAI_RERANK_MODEL=qwen3-rerank
+OPENAI_RERANK_URL=https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank
+
+LANGCHAIN_API_KEY=your-langsmith-api-key
+LANGCHAIN_PROJECT=rag_demo
+LANGCHAIN_TRACING_V2=true
+
+MILVUS_COLLECTION=rag_docs
+MILVUS_URI=http://localhost:19530
 ```
 
-> 结构化输出（路由、拆解、规划）建议使用支持 `functionCalling` / JSON 模式的模型（如 `qwen-plus`）。
+结构化任务建议使用支持 function calling 的模型；批量评测时较小模型通常更快。
 
-### 运行
+## 快速开始
 
 ```bash
-# 1. 将 EPUB 入库（需准备 ./天龙八部.epub 或修改 insert.ts 中的路径）
-npm run insert
-
-# 2. 纯向量检索
-npm run query
-
-# 3. 基础 RAG 问答
-npm run rag
-
-# 4. 自主决策 + 多跳 RAG（LangGraph）
-npx tsx src/naive.ts
+npm install
+docker compose up -d
 ```
 
-编译：
+在**项目根目录**运行各模块入口脚本（使用 `tsx`）。客服知识库原文放在根目录 `data/` 下（Markdown/TXT）。
+
+| 场景 | 大致步骤 |
+|------|----------|
+| 电子书 | 准备 EPUB → 入库 → 检索 / 问答 / 多跳 Agent |
+| 混合检索 | 样例数据写入 ES 与 Milvus → 运行混合检索流水线 |
+| 客服 RAG | 文档入库 → 命令行问答 |
+| 评测 | 上传评测集（首次）→ 批量跑评测 → 在 LangSmith 查看报告 |
+| 图谱 | 启动 Neo4j → 图数据示例或 GraphRAG 问答 |
 
 ```bash
 npm run build
 ```
 
-## 数据流概览
+## 架构示意
+
+### 电子书多跳 Agent
 
 ```mermaid
 flowchart LR
-  epub[EPUB] --> insert[insert.ts]
-  insert --> milvus[(Milvus)]
-  question[用户问题] --> naive[naive.ts]
-  naive --> milvus
-  naive --> llm[大模型]
+  epub[EPUB] --> ingest[入库分块]
+  ingest --> milvus[(Milvus)]
+  q[用户问题] --> agent[Agent 工作流]
+  agent --> milvus
+  agent --> llm[大模型]
   llm --> answer[回答]
 ```
+
+### 混合检索
+
+```mermaid
+flowchart TB
+  q[用户问题] --> rewrite[查询改写]
+  rewrite --> es[全文检索]
+  rewrite --> vec[向量检索]
+  es --> merge[合并去重]
+  vec --> merge
+  merge --> rerank[重排]
+  rerank --> gen[生成答案]
+```
+
+### RAG 评测
+
+```mermaid
+flowchart LR
+  ds[评测数据集] --> rag[被测 RAG]
+  rag --> milvus[(Milvus)]
+  rag --> out[答案与上下文]
+  out --> judge[LLM 裁判打分]
+  judge --> report[实验报告]
+```
+
+评测指标含义：
+
+| 指标 | 含义 |
+|------|------|
+| 忠实度 | 答案是否有检索上下文支撑 |
+| 有用性 | 是否切题、有用 |
+| 检索相关性 | 召回片段与问题是否相关 |
+
+## 常见问题
+
+- **数据目录找不到**：在项目根目录执行脚本；知识库文档放在根目录 `data/`。
+- **向量检索报 metric 不一致**：建索引与查询使用的距离度量须相同（如均为余弦相似度）。
+- **ES 镜像插件冲突**：无缓存重建 ES 服务镜像即可。
+- **图里只有节点没有关系**：创建节点后需再建立关系边。
+- **评测较慢**：每条样例包含多次大模型调用，可换更快模型或缩小评测集。
 
 ## License
 
