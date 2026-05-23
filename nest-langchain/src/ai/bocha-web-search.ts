@@ -4,6 +4,7 @@ const bochaWebPageSchema = z.object({
   name: z.string().optional(),
   url: z.string().optional(),
   summary: z.string().optional(),
+  snippet: z.string().optional(),
   siteName: z.string().optional(),
   siteIcon: z.string().optional(),
   dateLastCrawled: z.string().optional(),
@@ -11,7 +12,7 @@ const bochaWebPageSchema = z.object({
 
 const bochaWebSearchResponseSchema = z.object({
   code: z.number(),
-  msg: z.string().optional(),
+  msg: z.string().nullish(),
   data: z
     .object({
       webPages: z
@@ -34,7 +35,7 @@ function formatWebPage(page: BochaWebPage, idx: number): string {
   return `引用: ${idx + 1}
 标题: ${page.name ?? ''}
 URL: ${page.url ?? ''}
-摘要: ${page.summary ?? ''}
+摘要: ${page.summary ?? page.snippet ?? ''}
 网站名称: ${page.siteName ?? ''}
 网站图标: ${page.siteIcon ?? ''}
 发布时间: ${page.dateLastCrawled ?? ''}`;
@@ -48,7 +49,12 @@ export async function runBochaWebSearch(
 ): Promise<string> {
   const response = await fetch(baseUrl, {
     method: 'POST',
-    body: JSON.stringify({ query, count }),
+    body: JSON.stringify({
+      query,
+      count,
+      freshness: 'noLimit',
+      summary: true,
+    }),
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',

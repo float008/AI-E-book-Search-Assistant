@@ -104,7 +104,7 @@
           return;
         }
 
-        const url = `${baseUrl}/ai/chat?query=${encodeURIComponent(q)}`;
+        const url = `${baseUrl}/ai/chat/stream?query=${encodeURIComponent(q)}`;
         output.textContent = '';
         btn.disabled = true;
         status.textContent = '连接中...';

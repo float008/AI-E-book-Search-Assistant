@@ -148,6 +148,28 @@ export class AiService {
               content: result,
             }),
           );
+        } else if (toolName === 'send_mail') {
+          const args = sendMailArgsSchema.parse(toolCall.args);
+          const result = (await this.sendMailTool.invoke(args)) as string;
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'web_search') {
+          const args = webSearchArgsSchema.parse(toolCall.args);
+          const result = (await this.webSearchTool.invoke(args)) as string;
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
         }
       }
     }
