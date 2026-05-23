@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
@@ -9,7 +9,10 @@
         box-sizing: border-box;
       }
       body {
-        font-family: system-ui, -apple-system, sans-serif;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
         max-width: 640px;
         margin: 2rem auto;
         padding: 0 1rem;
@@ -19,7 +22,7 @@
         margin-bottom: 0.5rem;
         font-weight: 500;
       }
-      input[type="text"] {
+      input[type='text'] {
         width: 100%;
         padding: 0.75rem;
         border: 1px solid #ccc;
@@ -56,7 +59,7 @@
         word-break: break-word;
       }
       .output:empty::before {
-        content: "回复将显示在这里...";
+        content: '回复将显示在这里...';
         color: #9ca3af;
       }
       .status {
@@ -87,42 +90,42 @@
     <div class="output" id="output"></div>
 
     <script>
-      const apiUrlInput = document.getElementById("apiUrl");
-      const queryInput = document.getElementById("query");
-      const btn = document.getElementById("btn");
-      const output = document.getElementById("output");
-      const status = document.getElementById("status");
+      const apiUrlInput = document.getElementById('apiUrl');
+      const queryInput = document.getElementById('query');
+      const btn = document.getElementById('btn');
+      const output = document.getElementById('output');
+      const status = document.getElementById('status');
 
-      btn.addEventListener("click", () => {
-        const baseUrl = apiUrlInput.value.replace(/\/$/, "");
+      btn.addEventListener('click', () => {
+        const baseUrl = apiUrlInput.value.replace(/\/$/, '');
         const q = queryInput.value.trim();
         if (!q) {
-          status.textContent = "请输入问题";
+          status.textContent = '请输入问题';
           return;
         }
 
-        const url = `${baseUrl}/ai/chat/stream?query=${encodeURIComponent(q)}`;
-        output.textContent = "";
+        const url = `${baseUrl}/ai/chat?query=${encodeURIComponent(q)}`;
+        output.textContent = '';
         btn.disabled = true;
-        status.textContent = "连接中...";
+        status.textContent = '连接中...';
 
         const eventSource = new EventSource(url);
 
         eventSource.onmessage = ({ data }) => {
           output.textContent += data;
-          status.textContent = "接收中...";
+          status.textContent = '接收中...';
         };
 
         eventSource.onerror = () => {
           eventSource.close();
           btn.disabled = false;
-          status.textContent = "连接已结束";
+          status.textContent = '连接已结束';
         };
 
-        eventSource.addEventListener("done", () => {
+        eventSource.addEventListener('done', () => {
           eventSource.close();
           btn.disabled = false;
-          status.textContent = "完成";
+          status.textContent = '完成';
         });
       });
     </script>

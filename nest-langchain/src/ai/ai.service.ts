@@ -7,40 +7,14 @@ import {
   ToolMessage,
 } from '@langchain/core/messages';
 import { Runnable } from '@langchain/core/runnables';
-import { Tool, tool } from '@langchain/core/tools';
+import { Tool } from '@langchain/core/tools';
 import { ChatOpenAI } from '@langchain/openai';
 import { Inject, Injectable } from '@nestjs/common';
-import z from 'zod';
-
-const database = {
-  users: [
-    { id: '001', name: '张三', age: 20, email: 'zhangsan@example.com' },
-    { id: '002', name: '李四', age: 21, email: 'lisi@example.com' },
-    { id: '003', name: '王五', age: 22, email: 'wangwu@example.com' },
-  ],
-};
-
-const queryUserSchema = z.object({
-  userId: z.string().describe('用户ID，例如： 001, 002, 003'),
-});
-
-type QueryUserArgs = { userId: string };
-
-const queryUserTool = tool(
-  ({ userId }: QueryUserArgs) => {
-    const user = database.users.find((user) => user.id === userId);
-    if (!user) {
-      return `用户ID：${userId}，不存在`;
-    }
-    return `用户ID：${user.id}，姓名：${user.name}，年龄：${user.age}，邮箱：${user.email}`;
-  },
-  {
-    name: 'query_user',
-    description:
-      '查询用户信息。输入用户 ID，返回该用户的详细信息（姓名、邮箱、角色）',
-    schema: queryUserSchema,
-  },
-);
+import {
+  queryUserSchema,
+  sendMailArgsSchema,
+  webSearchArgsSchema,
+} from './ai-tool.schemas';
 
 @Injectable()
 export class AiService {
@@ -49,8 +23,14 @@ export class AiService {
   constructor(
     @Inject('CHAT_MODEL') private readonly model: ChatOpenAI,
     @Inject('QUERY_USER_TOOL') private readonly queryUserTool: Tool,
+    @Inject('SEND_MAIL_TOOL') private readonly sendMailTool: Tool,
+    @Inject('WEB_SEARCH_TOOL') private readonly webSearchTool: Tool,
   ) {
-    this.modelWithTools = model.bindTools([queryUserTool]);
+    this.modelWithTools = model.bindTools([
+      queryUserTool,
+      sendMailTool,
+      webSearchTool,
+    ]);
   }
 
   async runChain(query: string): Promise<string> {
@@ -80,6 +60,28 @@ export class AiService {
           const result = (await this.queryUserTool.invoke({
             userId: args.userId,
           })) as string;
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'send_mail') {
+          const args = sendMailArgsSchema.parse(toolCall.args);
+          const result = (await this.sendMailTool.invoke(args)) as string;
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'web_search') {
+          const args = webSearchArgsSchema.parse(toolCall.args);
+          const result = (await this.webSearchTool.invoke(args)) as string;
 
           messages.push(
             new ToolMessage({
