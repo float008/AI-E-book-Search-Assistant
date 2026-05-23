@@ -7,7 +7,7 @@ import {
   ToolMessage,
 } from '@langchain/core/messages';
 import { Runnable } from '@langchain/core/runnables';
-import { tool } from '@langchain/core/tools';
+import { Tool, tool } from '@langchain/core/tools';
 import { ChatOpenAI } from '@langchain/openai';
 import { Inject, Injectable } from '@nestjs/common';
 import z from 'zod';
@@ -46,7 +46,10 @@ const queryUserTool = tool(
 export class AiService {
   private readonly modelWithTools: Runnable<BaseMessage[], AIMessage>;
 
-  constructor(@Inject('CHAT_MODEL') private readonly model: ChatOpenAI) {
+  constructor(
+    @Inject('CHAT_MODEL') private readonly model: ChatOpenAI,
+    @Inject('QUERY_USER_TOOL') private readonly queryUserTool: Tool,
+  ) {
     this.modelWithTools = model.bindTools([queryUserTool]);
   }
 
@@ -74,7 +77,9 @@ export class AiService {
 
         if (toolName === 'query_user') {
           const args = queryUserSchema.parse(toolCall.args);
-          const result = await queryUserTool.invoke(args);
+          const result = (await this.queryUserTool.invoke({
+            userId: args.userId,
+          })) as string;
 
           messages.push(
             new ToolMessage({
@@ -119,7 +124,6 @@ export class AiService {
 
       messages.push(fullAIMessage);
 
-      console.log('fullAIMessage', fullAIMessage);
       const toolCalls = fullAIMessage.tool_calls || [];
 
       if (!toolCalls.length) {
@@ -133,7 +137,7 @@ export class AiService {
         if (toolName === 'query_user') {
           const args = queryUserSchema.parse(toolCall.args);
 
-          const result = await queryUserTool.invoke(args);
+          const result = (await this.queryUserTool.invoke(args)) as string;
 
           messages.push(
             new ToolMessage({
