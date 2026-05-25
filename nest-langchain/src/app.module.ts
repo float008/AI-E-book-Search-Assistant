@@ -6,12 +6,27 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from './users/users.module';
+import { User } from './users/entities/user.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }),
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: 'localhost',
+      port: 3306,
+      username: 'root',
+      password: 'admin',
+      database: 'hello',
+      synchronize: true,
+      connectorPackage: 'mysql2',
+      logging: true,
+      entities: [User],
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
@@ -34,6 +49,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
       }),
     }),
     AiModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

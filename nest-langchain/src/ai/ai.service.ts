@@ -25,11 +25,13 @@ export class AiService {
     @Inject('QUERY_USER_TOOL') private readonly queryUserTool: Tool,
     @Inject('SEND_MAIL_TOOL') private readonly sendMailTool: Tool,
     @Inject('WEB_SEARCH_TOOL') private readonly webSearchTool: Tool,
+    @Inject('DB_USERS_CURD_TOOL') private readonly dbUsersCurdTool: Tool,
   ) {
     this.modelWithTools = model.bindTools([
       queryUserTool,
       sendMailTool,
       webSearchTool,
+      dbUsersCurdTool,
     ]);
   }
 
@@ -82,6 +84,18 @@ export class AiService {
         } else if (toolName === 'web_search') {
           const args = webSearchArgsSchema.parse(toolCall.args);
           const result = (await this.webSearchTool.invoke(args)) as string;
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'db_users_crud') {
+          const result = (await this.dbUsersCurdTool.invoke(
+            toolCall.args,
+          )) as string;
 
           messages.push(
             new ToolMessage({
@@ -162,6 +176,18 @@ export class AiService {
         } else if (toolName === 'web_search') {
           const args = webSearchArgsSchema.parse(toolCall.args);
           const result = (await this.webSearchTool.invoke(args)) as string;
+
+          messages.push(
+            new ToolMessage({
+              tool_call_id: toolCallId,
+              name: toolName,
+              content: result,
+            }),
+          );
+        } else if (toolName === 'db_users_crud') {
+          const result = (await this.dbUsersCurdTool.invoke(
+            toolCall.args,
+          )) as string;
 
           messages.push(
             new ToolMessage({

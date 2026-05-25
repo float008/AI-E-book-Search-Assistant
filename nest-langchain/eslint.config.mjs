@@ -28,7 +28,14 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
-      "prettier/prettier": ["error", { endOfLine: "auto" }],
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+    },
+  },
+  {
+    files: ['**/*.dto.ts'],
+    rules: {
+      // class-validator 装饰器在 type-aware ESLint 下常被误判为 unresolved
+      '@typescript-eslint/no-unsafe-call': 'off',
     },
   },
 );
