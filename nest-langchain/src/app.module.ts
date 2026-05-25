@@ -9,6 +9,9 @@ import { MailerModule } from '@nestjs-modules/mailer';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
+import { ScheduleModule } from '@nestjs/schedule';
+import { JobModule } from './job/job.module';
+import { Job } from './job/entities/job.entity';
 
 @Module({
   imports: [
@@ -16,6 +19,7 @@ import { User } from './users/entities/user.entity';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
@@ -26,7 +30,7 @@ import { User } from './users/entities/user.entity';
       synchronize: true,
       connectorPackage: 'mysql2',
       logging: true,
-      entities: [User],
+      entities: [User, Job],
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
@@ -50,6 +54,7 @@ import { User } from './users/entities/user.entity';
     }),
     AiModule,
     UsersModule,
+    JobModule,
   ],
   controllers: [AppController],
   providers: [AppService],
