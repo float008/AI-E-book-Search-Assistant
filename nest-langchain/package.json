@@ -15,6 +15,7 @@
     "lint": "eslint \"src/**/*.ts\" --fix"
   },
   "dependencies": {
+    "@ai-sdk/langchain": "^2.0.197",
     "@elastic/elasticsearch": "^8.17.0",
     "@langchain/community": "^1.1.27",
     "@langchain/core": "^1.1.40",
@@ -30,8 +31,10 @@
     "@nestjs/serve-static": "^5.0.5",
     "@nestjs/typeorm": "^11.0.1",
     "@types/cron": "^2.0.1",
+    "ai": "^6.0.191",
     "class-validator": "^0.15.1",
     "cron": "^4.4.0",
+    "langchain": "^1.4.2",
     "mysql2": "^3.15.3",
     "nodemailer": "^8.0.7",
     "reflect-metadata": "^0.2.2",
